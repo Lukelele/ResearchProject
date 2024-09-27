@@ -145,7 +145,7 @@ def add_time(arr, t_start, time_dimension):
             if time_value > time_dimension:
                 time_value = 0
 
-            arr[row_idx, non_zero_indices] = time_value
+            arr[row_idx, non_zero_indices] = 1
 
     return arr
 
