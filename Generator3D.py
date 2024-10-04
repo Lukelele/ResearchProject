@@ -93,17 +93,22 @@ def add_noise(data):
     return torch.clamp(generate_binary_noise(data.shape, p=0.00002) + data, 0, 1)
 
 
-def generate(t_dim, x_dim, y_dim):
-    data = torch.zeros(x_dim, y_dim)
-    pr, pl = draw_parabola(data)
+def generate(t_dim, x_dim, y_dim, n_objects=1):
+    full_data = torch.zeros(n_objects, t_dim, x_dim, y_dim)
 
-    angle = np.random.randint(10, 40)
-    draw_line(data, pr, angle)
-    draw_line(data, pl, angle)
-    add_time_value(data, 100)
-    timed_data = add_time_dim(data, t_dim)
+    for i in range(n_objects):
+        data = torch.zeros(x_dim, y_dim)
+        pr, pl = draw_parabola(data)
 
-    return timed_data
+        angle = np.random.randint(10, 40)
+        draw_line(data, pr, angle)
+        draw_line(data, pl, angle)
+        add_time_value(data, 100)
+        timed_data = add_time_dim(data, t_dim)
+
+        full_data[i] = timed_data
+
+    return full_data
 
 
 def plot(data):
