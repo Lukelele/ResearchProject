@@ -85,12 +85,12 @@ def add_time_dim(canvas, time_index):
     return timed_data
 
 
-def generate_binary_noise(*dim, p=0.5, magnitude=1):
+def generate_binary_noise(*dim, p=0.001, magnitude=1):
     random_tensor = torch.rand(*dim)
     return (random_tensor < p).float() * magnitude
 
-def add_noise(data):
-    return torch.clamp(generate_binary_noise(data.shape, p=0.00002) + data, 0, 1)
+def add_noise(data, p=0.001, magnitude=1):
+    return torch.clamp(generate_binary_noise(data.shape, p=p, magnitude=magnitude) + data, 0, 1)
 
 
 def generate(t_dim, x_dim, y_dim, n_objects=1):
