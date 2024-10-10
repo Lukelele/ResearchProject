@@ -57,6 +57,24 @@ def draw_line(canvas, start, angle, max_lit_px=400):
         x += dx
         y -= dy
         lit_pixels += 1
+
+
+def random_remove_points(canvas, n_points):
+    none_zero_indices = canvas.nonzero()
+    if none_zero_indices.shape[0] < n_points:
+        return
+
+    if n_points > 1:
+        random_indices = np.random.choice(none_zero_indices.shape[0], n_points)
+    else:
+        n = int(n_points * none_zero_indices.shape[0])
+        random_indices = np.random.choice(none_zero_indices.shape[0], n)
+
+    for i in random_indices:
+        x = none_zero_indices[i][1]
+        y = none_zero_indices[i][0]
+        canvas[y, x] = 0
+
         
 
 def add_time_value(canvas, t_start):
@@ -93,7 +111,7 @@ def add_noise(data, p=0.001, magnitude=1):
     return torch.clamp(generate_binary_noise(data.shape, p=p, magnitude=magnitude) + data, 0, 1)
 
 
-def generate(t_dim, x_dim, y_dim, n_objects=1):
+def generate(t_dim, x_dim, y_dim, n_objects=1, n_points=10):
     full_data = torch.zeros(n_objects, t_dim, x_dim, y_dim)
 
     for i in range(n_objects):
@@ -103,6 +121,7 @@ def generate(t_dim, x_dim, y_dim, n_objects=1):
         angle = np.random.randint(10, 40)
         draw_line(data, pr, angle)
         draw_line(data, pl, angle)
+        random_remove_points(data, n_points)
         add_time_value(data, 100)
         timed_data = add_time_dim(data, t_dim)
 
