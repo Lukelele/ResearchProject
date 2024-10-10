@@ -64,11 +64,11 @@ def random_remove_points(canvas, n_points):
     if none_zero_indices.shape[0] < n_points:
         return
 
-    if n_points > 1:
-        random_indices = np.random.choice(none_zero_indices.shape[0], n_points)
+    if n_points >= 1:
+        random_indices = np.random.choice(none_zero_indices.shape[0], n_points, replace=False)
     else:
         n = int(n_points * none_zero_indices.shape[0])
-        random_indices = np.random.choice(none_zero_indices.shape[0], n)
+        random_indices = np.random.choice(none_zero_indices.shape[0], n, replace=False)
 
     for i in random_indices:
         x = none_zero_indices[i][1]
@@ -112,7 +112,7 @@ def add_noise(data, p=0.001, magnitude=1):
 
 
 def generate(t_dim, x_dim, y_dim, n_objects=1, n_points=10):
-    full_data = torch.zeros(n_objects, t_dim, x_dim, y_dim)
+    full_data = torch.zeros(n_objects, 1, t_dim, x_dim, y_dim)
 
     for i in range(n_objects):
         data = torch.zeros(x_dim, y_dim)
@@ -125,7 +125,7 @@ def generate(t_dim, x_dim, y_dim, n_objects=1, n_points=10):
         add_time_value(data, 100)
         timed_data = add_time_dim(data, t_dim)
 
-        full_data[i] = timed_data
+        full_data[i, 0] = timed_data
 
     return full_data
 
