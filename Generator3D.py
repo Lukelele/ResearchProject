@@ -80,7 +80,7 @@ def random_remove_points(canvas, n_points):
 def add_time_value(canvas, t_start):
     rows, cols = canvas.shape
 
-    first_row = None
+    first_row = 0
     
     for row in range(rows-1, -1, -1):
         non_zero_indices = np.where(canvas[row, :] != 0)[0]
@@ -95,7 +95,7 @@ def add_time_value(canvas, t_start):
 
 
 def add_time_dim(canvas, time_index):
-    timed_data = torch.zeros(time_index, canvas.shape[0], canvas.shape[1])
+    timed_data = torch.zeros(2, canvas.shape[0], canvas.shape[1])
     nonzero_x = canvas.nonzero()[:, 1]
     nonzero_y = canvas.nonzero()[:, 0]
     time_values = canvas[nonzero_y, nonzero_x].to(torch.int)
@@ -112,7 +112,8 @@ def add_noise(data, p=0.001, magnitude=1):
 
 
 def generate(t_dim, x_dim, y_dim, n_objects=1, n_points=10):
-    full_data = torch.zeros(n_objects, 1, t_dim, x_dim, y_dim)
+    full_data = torch.zeros(n_objects, 1, x_dim, y_dim)
+    noised_full_data = torch.zeros(n_objects, 1, x_dim, y_dim)
 
     for i in range(n_objects):
         data = torch.zeros(x_dim, y_dim)
@@ -122,20 +123,28 @@ def generate(t_dim, x_dim, y_dim, n_objects=1, n_points=10):
         draw_line(data, pr, angle)
         draw_line(data, pl, angle)
         random_remove_points(data, n_points)
-        add_time_value(data, 100)
-        timed_data = add_time_dim(data, t_dim)
+        noised_data = add_noise(data, p=0.01)
+        timed_data = add_time_value(data, 100)
+        noised_timed_data = add_time_value(noised_data, 100)
+        max_value = torch.max(noised_timed_data)
+        timed_data /= max_value
+        noised_timed_data /= max_value
+        #timed_data = add_time_dim(data, t_dim)
 
         full_data[i, 0] = timed_data
+        noised_full_data[i, 0] = noised_timed_data
 
-    return full_data
+    return full_data, noised_full_data
 
 
 def plot(data):
     ax = plt.figure().add_subplot(projection='3d')
-    timed_data_nonezero = data.nonzero()
-    ax.scatter(timed_data_nonezero[:, 0], timed_data_nonezero[:, 2], timed_data_nonezero[:, 1], c=timed_data_nonezero[:, 0])
-    ax.set_xlabel('Time')
+    data_np = data.numpy().squeeze()  # shape (120, 92)
+    y, x = np.nonzero(data_np)
+    time_values = data_np[y, x]
+    ax.scatter(y, x, time_values, c=time_values)
+    ax.set_xlabel('Y')
     ax.set_ylabel('X')
-    ax.set_zlabel('Y')
+    ax.set_zlabel('Time')
     ax.set_box_aspect(None, zoom=0.85)
     plt.show()
