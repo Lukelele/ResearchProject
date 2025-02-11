@@ -1,7 +1,11 @@
 import numpy as np
 import torch
+from torch.utils.data import DataLoader, Dataset
 import matplotlib.pyplot as plt
 
+
+
+# --------- Data Generation -----------
 
 def draw_parabola(canvas, origin=None):
     if origin is None:
@@ -76,7 +80,6 @@ def random_remove_points(canvas, n_points):
         canvas[y, x] = 0
 
         
-
 def add_time_value(canvas, t_start):
     rows, cols = canvas.shape
 
@@ -137,9 +140,50 @@ def generate(t_dim, x_dim, y_dim, n_objects=1, n_points=10):
     return full_data, noised_full_data
 
 
-def plot(data):
-    ax = plt.figure().add_subplot(projection='3d')
-    data_np = data.numpy().squeeze()  # shape (120, 92)
+def set_continuous_time(canvas, t_start):
+    rows, cols = canvas.shape
+    canvas = canvas.clone()
+
+    first_row = 0
+    time_end = 0
+
+    for row in range(rows-1, -1, -1):
+        non_zero_indices = np.where(canvas[row, :] != 0)[0]
+        if non_zero_indices.size > 0:
+            if first_row is None:
+                first_row = row
+            time_index = rows - row + t_start
+            canvas[row, non_zero_indices] = time_index
+            time_end = time_index
+
+    return canvas, time_end
+
+
+def set_random_time(canvas, t_start, t_end):
+    canvas = canvas.clone()
+
+    random_times = torch.randint(t_start, t_end, canvas.shape, dtype=canvas.dtype, device=canvas.device)
+
+    canvas[canvas != 0] = random_times[canvas != 0]
+
+    return canvas
+
+
+def generate_binary_noise(*dim, p=0.001, magnitude=1):
+    random_tensor = torch.rand(*dim)
+    return (random_tensor < p).float() * magnitude
+
+def generate_noise(data, p=0.001):
+    return torch.clamp(generate_binary_noise(data.shape, p=p, magnitude=1) - data, 0, 1)
+
+
+
+# --------- Data Visualisation -----------
+
+def plot3d(data, ax=None):
+    if ax is None:
+        ax = plt.figure().add_subplot(projection='3d')
+    data_np = data.numpy().squeeze()
     y, x = np.nonzero(data_np)
     time_values = data_np[y, x]
     ax.scatter(y, x, time_values, c=time_values)
@@ -147,4 +191,79 @@ def plot(data):
     ax.set_ylabel('X')
     ax.set_zlabel('Time')
     ax.set_box_aspect(None, zoom=0.85)
-    plt.show()
+
+def plot2d(data):
+    plt.imshow(data.squeeze())
+    plt.xlabel('X')
+    plt.ylabel('Y')
+    plt.colorbar()
+
+
+
+# --------- Torch Data Class -----------
+
+
+class TORCHData():
+    def __init__(self, t_dim, x_dim, y_dim, n_remove=10):
+        """
+        Initiate torch datasets.
+        Args:
+            t_dim: int, time dimension
+            x_dim: int, x dimension
+            y_dim: int, y dimension
+            n_remove: int, number of points to remove
+        """
+        self.t_dim = t_dim
+        self.x_dim = x_dim
+        self.y_dim = y_dim
+        self.n_remove = n_remove
+        self.signal = torch.zeros(self.x_dim, self.y_dim)
+        self.noise = torch.zeros(self.x_dim, self.y_dim)
+        self.sn = torch.zeros(self.x_dim, self.y_dim)
+        self.signal_time = torch.zeros(self.x_dim, self.y_dim)
+        self.noise_time = torch.zeros(self.x_dim, self.y_dim)
+        self.sn_time = torch.zeros(self.x_dim, self.y_dim)
+        self.generate()
+
+
+    def generate(self):
+        """
+        Generate datasets.
+        """
+        pr, pl = draw_parabola(self.signal)
+
+        angle = np.random.randint(10, 40)
+        draw_line(self.signal, pr, angle)
+        draw_line(self.signal, pl, angle)
+        random_remove_points(self.signal, self.n_remove)
+        self.signal_time, time_end = set_continuous_time(self.signal, 100)
+        self.noise = generate_noise(self.signal, p=0.1)
+        self.noise_time = set_random_time(self.noise, 100, time_end+10)
+        self.sn = self.signal + self.noise
+        self.sn_time = self.signal_time + self.noise_time
+
+
+
+class TORCHDataset(Dataset):
+    def __init__(self, t=100, x=120, y=92, n_remove=50, num_data = 1, transforms=None):
+        data = np.array([TORCHData(t, x, y, n_remove) for _ in range(num_data)])
+
+        self.x = []
+        self.y = []
+
+        for i in data:
+            self.x.append(i.sn_time)
+            self.y.append(i.signal_time)
+
+        self.x = torch.stack(self.x)
+        self.y = torch.stack(self.y)
+        self.transforms = transforms
+
+    def __len__(self):
+        return len(self.x)
+
+    def __getitem__(self, idx):
+        if self.transforms:
+            x = self.transforms(x)
+
+        return self.x[idx], self.y[idx]
