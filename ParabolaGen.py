@@ -162,8 +162,8 @@ def create_track(canvas, origin, time_dimension):
     draw_line(canvas, start=reversed(sl), angle=angle, npix=400, use_degrees=True)
     draw_line(canvas, start=reversed(sr), angle=-angle, npix=400, use_degrees=True)
 
-    t_start = np.random.randint(1, time_dimension-1)
-    add_time(canvas, t_start, time_dimension)
+    #t_start = np.random.randint(1, time_dimension-1)
+    #add_time(canvas, t_start, time_dimension)
 
     return canvas
 
