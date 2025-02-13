@@ -245,7 +245,7 @@ class TORCHData():
 
 
 class TORCHDataset(Dataset):
-    def __init__(self, t=100, x=120, y=92, n_remove=50, num_data = 1):
+    def __init__(self, t=100, x=120, y=92, n_remove=50, num_data = 1, transform=None):
         data = np.array([TORCHData(t, x, y, n_remove) for _ in range(num_data)])
 
         self.x = []
@@ -257,6 +257,39 @@ class TORCHDataset(Dataset):
 
         self.x = torch.stack(self.x)
         self.y = torch.stack(self.y)
+        
+        if transform:
+            self.x = transform(self.x)
+            self.y = transform(self.y)
+
+    def dataloader(self, batch_size=1, shuffle=True):
+        return DataLoader(self, batch_size=batch_size, shuffle=shuffle)
+
+    def __len__(self):
+        return len(self.x)
+
+    def __getitem__(self, idx):
+        return self.x[idx], self.y[idx]
+    
+    
+
+class TORCHDataset_2channel(Dataset):
+    def __init__(self, t=100, x=120, y=92, n_remove=50, num_data = 1, transform=None):
+        data = np.array([TORCHData(t, x, y, n_remove) for _ in range(num_data)])
+
+        self.x = []
+        self.y = []
+
+        for i in data:
+            self.x.append(i.sn_time.unsqueeze(0).stack(i.sn.unsqueeze(0)))
+            self.y.append(i.signal_time.unsqueeze(0).stack(i.signal.unsqueeze(0)))
+
+        self.x = torch.stack(self.x)
+        self.y = torch.stack(self.y)
+        
+        if transform:
+            self.x = transform(self.x)
+            self.y = transform(self.y)
 
     def dataloader(self, batch_size=1, shuffle=True):
         return DataLoader(self, batch_size=batch_size, shuffle=shuffle)
