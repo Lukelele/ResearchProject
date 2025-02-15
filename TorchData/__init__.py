@@ -203,21 +203,30 @@ class TORCHDataset2Channel(Dataset):
     def __init__(self, t=100, x=120, y=92, n_remove=50, num_data = 1):
         data = np.array([TORCHData(t, x, y, n_remove) for _ in range(num_data)])
 
-        self.sn_time = []
-        self.signal_time = []
+        self.x = []
+        self.y = []
+        self.sn_time = []  # signal + noise, (time value)
+        self.signal_time = []  # signal (time value)
+        self.signal = []
 
         for i in data:
-            self.sn_time.append(torch.cat((i.sn.unsqueeze(0), i.sn_time.unsqueeze(0)), dim=0))
-            self.signal_time.append(torch.cat((i.signal.unsqueeze(0), i.signal_time.unsqueeze(0)), dim=0))
+            self.x.append(torch.cat((i.sn.unsqueeze(0), i.sn_time.unsqueeze(0)), dim=0))
+            self.y.append(torch.cat((i.signal.unsqueeze(0), i.signal_time.unsqueeze(0)), dim=0))
+            self.sn_time.append(i.sn_time.unsqueeze(0))
+            self.signal_time.append(i.signal_time.unsqueeze(0))
+            self.signal.append(i.signal.unsqueeze(0))
 
+        self.x = torch.stack(self.x)
+        self.y = torch.stack(self.y)
         self.sn_time = torch.stack(self.sn_time)
-        self.signal_time = torch.stack(self.y)
+        self.signal_time = torch.stack(self.signal_time)
+        self.signal = torch.stack(self.signal)
 
     def dataloader(self, batch_size=1, shuffle=True):
         return DataLoader(self, batch_size=batch_size, shuffle=shuffle)
 
     def __len__(self):
-        return len(self.sn_time)
+        return len(self.x)
 
     def __getitem__(self, idx):
-        return torch.tensor(self.sn_time[idx]), torch.tensor(self.signal_time[idx])
+        return torch.tensor(self.x[idx]), torch.tensor(self.y[idx])

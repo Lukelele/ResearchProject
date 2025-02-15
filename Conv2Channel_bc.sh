@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=HybridTransformer
+#SBATCH --job-name=Conv2Channel
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:2
 #SBATCH --partition gpu
@@ -24,9 +24,10 @@ printf "\n\n"
 conda activate denosing-data
 
 export $(grep -v '^#' .env | xargs)
-MODEL_PATH="HybridTransformer_${NUM_DATA}_${BATCH_SIZE}_${EPOCH}"
+MODEL_PATH="Conv2Channel_${NUM_DATA}_${BATCH_SIZE}_${EPOCH}"
 
-srun python HybridTransformer_cmd.py $NUM_DATA $BATCH_SIZE $EPOCH $MODEL_PATH
+srun python Conv2Channel_cmd.py $NUM_DATA $BATCH_SIZE $EPOCH $MODEL_PATH
+
 
 # Output the end time
 printf "\n\n"

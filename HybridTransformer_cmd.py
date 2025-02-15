@@ -1,10 +1,7 @@
 import sys
 import torch
-from tqdm import tqdm
 import TorchData
-
-
-device = "cuda" if torch.cuda.is_available() else "mps"
+import cmd_core
 
 class HybridTransformer(torch.nn.Module):
     def __init__(self, embed_dim=64, num_heads=1, num_layers=2):
@@ -66,25 +63,6 @@ class HybridTransformer(torch.nn.Module):
         # Decoder pathway
         return self.decoder(x)
 
-def main():
-    train_dataset = TorchData.TORCHDataset(num_data=NUM_DATA)
-    train_dataloader = train_dataset.dataloader(batch_size=BATCH_SIZE, shuffle=True)
-    model = HybridTransformer().to(device)
-    loss_function = torch.nn.MSELoss()
-    optimiser = torch.optim.Adam(model.parameters(), lr=0.01)
-
-    for _ in tqdm(range(EPOCH)):
-        for sn_time, signal_time in train_dataloader:
-            optimiser.zero_grad()
-            outputs = model(sn_time.to(device))
-            loss = loss_function(outputs, signal_time.to(device))
-            loss.backward()
-            optimiser.step()
-
-    torch.save(model.state_dict(), f"{MODEL_PATH}.pth")
-    print("Model saved to", f"{MODEL_PATH}.pth")
-
-
 if __name__ == "__main__":
     if int(len(sys.argv)) == 4 or int(len(sys.argv)) == 5:
         PROGNAME = sys.argv[0]
@@ -94,7 +72,9 @@ if __name__ == "__main__":
         MODEL_PATH = "HybridTransformer"
         if int(len(sys.argv)) == 5:
             MODEL_PATH = sys.argv[4]
-        main()
+        train_dataset = TorchData.TORCHDataset(num_data=NUM_DATA)
+        train_dataloader = train_dataset.dataloader(batch_size=BATCH_SIZE, shuffle=True)
+        cmd_core.main(train_dataloader, HybridTransformer, EPOCH, MODEL_PATH)
     else:
         print("Usage: python {} <NUM_DATA> <BATCH_SIZE> <EPOCH> <MODEL_PATH>".format(sys.argv[0]))
         sys.exit(1)
