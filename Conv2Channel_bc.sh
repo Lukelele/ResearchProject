@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=HybridTransformer
+#SBATCH --job-name=Conv2Channel
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:2
 #SBATCH --partition gpu
@@ -22,10 +22,11 @@ echo "This jobs runs on the following machines:"
 echo "${SLURM_JOB_NODELIST}"
 printf "\n\n"
 
-export $(grep -v '^#' .env | xargs)
-MODEL_PATH="HybridTransformer_${NUM_DATA}_${BATCH_SIZE}_${EPOCH}"
 
-srun python HybridTransformer_cmd.py $NUM_DATA $BATCH_SIZE $EPOCH $MODEL_PATH
+export $(grep -v '^#' .env | xargs)
+MODEL_PATH="Conv2Channel_${NUM_DATA}_${BATCH_SIZE}_${EPOCH}"
+
+srun python Conv2Channel_cmd.py $NUM_DATA $BATCH_SIZE $EPOCH $MODEL_PATH
 
 
 # Output the end time
