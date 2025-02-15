@@ -5,13 +5,11 @@
 #SBATCH --gres=gpu:2
 #SBATCH --partition gpu
 #SBATCH --account=phys033185
-##SBATCH --mail-user=to21072@bristol.ac.uk
-##SBATCH --mail-type=END
+#SBATCH --mail-user=to21072@bristol.ac.uk
+#SBATCH --mail-type=END
 
 # Change to working directory, where the job was submitted from.
 cd "${SLURM_SUBMIT_DIR}"
-
-mamba activate denosing-data
 
 # Record some potentially useful details about the job:
 echo "Running on host $(hostname)"
@@ -22,6 +20,8 @@ echo "This jobs runs on the following machines:"
 echo "${SLURM_JOB_NODELIST}"
 printf "\n\n"
 
+. ~/initMamba.sh
+conda activate denosing-data
 
 export $(grep -v '^#' .env | xargs)
 MODEL_PATH="Conv2Channel_${NUM_DATA}_${BATCH_SIZE}_${EPOCH}"
