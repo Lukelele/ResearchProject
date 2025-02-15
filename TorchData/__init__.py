@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, Dataset
+from numba import njit, prange
 from .visual import *
 
 
@@ -34,7 +35,7 @@ def draw_parabola(canvas, origin=None):
     
     return point_r, point_l
 
-
+@njit
 def draw_line(canvas, start, angle, max_lit_px=400):
     angle = np.radians(angle)
     
@@ -61,60 +62,40 @@ def draw_line(canvas, start, angle, max_lit_px=400):
         y -= dy
         lit_pixels += 1
 
-
 def random_remove_points(canvas, n_points):
-    none_zero_indices = canvas.nonzero()
-    if none_zero_indices.shape[0] < n_points:
+    non_zero_indices = np.argwhere(canvas != 0)
+    if len(non_zero_indices) == 0:
         return
 
     if n_points >= 1:
-        random_indices = np.random.choice(none_zero_indices.shape[0], n_points, replace=False)
+        n_remove = min(n_points, len(non_zero_indices))
     else:
-        n = int(n_points * none_zero_indices.shape[0])
-        random_indices = np.random.choice(none_zero_indices.shape[0], n, replace=False)
+        n_remove = int(n_points * len(non_zero_indices))
 
-    for i in random_indices:
-        x = none_zero_indices[i][1]
-        y = none_zero_indices[i][0]
+    remove_indices = np.random.choice(len(non_zero_indices), n_remove, replace=False)
+    for idx in remove_indices:
+        y, x = non_zero_indices[idx]
         canvas[y, x] = 0
 
-        
-def add_time_value(canvas, t_start):
-    rows, cols = canvas.shape
-
-    first_row = 0
-    
-    for row in range(rows-1, -1, -1):
-        non_zero_indices = np.where(canvas[row, :] != 0)[0]
-        if non_zero_indices.size > 0:
-            if first_row is None:
-                first_row = row
-            time_index = first_row - row + t_start
-
-            canvas[row, non_zero_indices] = time_index
-    
-    return canvas
-
-
 def add_time_dim(canvas, time_index):
-    timed_data = torch.zeros(2, canvas.shape[0], canvas.shape[1])
+    timed_data = np.zeros(2, canvas.shape[0], canvas.shape[1])
     nonzero_x = canvas.nonzero()[:, 1]
     nonzero_y = canvas.nonzero()[:, 0]
-    time_values = canvas[nonzero_y, nonzero_x].to(torch.int)
+    time_values = canvas[nonzero_y, nonzero_x].to(np.int64)
     timed_data[time_values, nonzero_y, nonzero_x] = 1
     return timed_data
 
 def generate_binary_noise(*dim, p=0.001, magnitude=1):
-    random_tensor = torch.rand(*dim)
-    return (random_tensor < p).float() * magnitude
+    random_tensor = np.random.rand(*dim)
+    return (random_tensor < p).astype(np.float32) * magnitude
 
 def generate_noise(data, p=0.001):
-    return torch.clamp(generate_binary_noise(data.shape, p=p, magnitude=1) - data, 0, 1)
+    return np.clip(generate_binary_noise(*data.shape, p=p, magnitude=1) - data, 0, 1)
 
-
+@njit
 def set_continuous_time(canvas, t_start):
     rows, cols = canvas.shape
-    canvas = canvas.clone()
+    canvas = canvas.copy()
 
     first_row = 0
     time_end = 0
@@ -132,9 +113,9 @@ def set_continuous_time(canvas, t_start):
 
 
 def set_random_time(canvas, t_start, t_end):
-    canvas = canvas.clone()
+    canvas = canvas.copy()
 
-    random_times = torch.randint(t_start, t_end, canvas.shape, dtype=canvas.dtype, device=canvas.device)
+    random_times = np.random.randint(t_start, t_end, canvas.shape)
 
     canvas[canvas != 0] = random_times[canvas != 0]
 
@@ -156,14 +137,14 @@ class TORCHData:
         self.x_dim = x_dim
         self.y_dim = y_dim
         self.n_remove = n_remove
-        self.signal = torch.zeros(self.x_dim, self.y_dim)
-        self.noise = torch.zeros(self.x_dim, self.y_dim)
-        self.sn = torch.zeros(self.x_dim, self.y_dim)
-        self.signal_time = torch.zeros(self.x_dim, self.y_dim)
-        self.noise_time = torch.zeros(self.x_dim, self.y_dim)
-        self.sn_time = torch.zeros(self.x_dim, self.y_dim)
+        self.signal = np.zeros((self.x_dim, self.y_dim), dtype=np.float32)
+        self.noise = np.zeros((self.x_dim, self.y_dim), dtype=np.float32)
+        self.sn = np.zeros((self.x_dim, self.y_dim), dtype=np.float32)
+        self.signal_time = np.zeros((self.x_dim, self.y_dim), dtype=np.float32)
+        self.noise_time = np.zeros((self.x_dim, self.y_dim), dtype=np.float32)
+        self.sn_time = np.zeros((self.x_dim, self.y_dim), dtype=np.float32)
         self.generate()
-
+        self._to_tensor()
 
     def generate(self):
         """
@@ -181,6 +162,13 @@ class TORCHData:
         self.sn = self.signal + self.noise
         self.sn_time = self.signal_time + self.noise_time
 
+    def _to_tensor(self):
+        self.signal = torch.tensor(self.signal, dtype=torch.float32)
+        self.noise = torch.tensor(self.noise, dtype=torch.float32)
+        self.sn = torch.tensor(self.sn, dtype=torch.float32)
+        self.signal_time = torch.tensor(self.signal_time, dtype=torch.float32)
+        self.noise_time = torch.tensor(self.noise_time, dtype=torch.float32)
+        self.sn_time = torch.tensor(self.sn_time, dtype=torch.float32)
 
 
 class TORCHDataset(Dataset):
