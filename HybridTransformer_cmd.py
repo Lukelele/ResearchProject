@@ -74,10 +74,10 @@ def main():
     optimiser = torch.optim.Adam(model.parameters(), lr=0.01)
 
     for _ in tqdm(range(EPOCH)):
-        for x, y in train_dataloader:
+        for sn_time, signal_time in train_dataloader:
             optimiser.zero_grad()
-            outputs = model(x.to(device))
-            loss = loss_function(outputs, y.to(device))
+            outputs = model(sn_time.to(device))
+            loss = loss_function(outputs, signal_time.to(device))
             loss.backward()
             optimiser.step()
 
