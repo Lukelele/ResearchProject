@@ -3,6 +3,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 from numba import njit, prange
 from .visual import *
+from .metric import *
 
 
 # --------- Data Generation -----------
@@ -177,13 +178,16 @@ class TORCHDataset(Dataset):
 
         self.sn_time = [] # signal + noise, (time value)
         self.signal_time = [] # signal (time value)
+        self.signal = []
 
         for i in data:
             self.sn_time.append(i.sn_time.unsqueeze(0))
             self.signal_time.append(i.signal_time.unsqueeze(0))
+            self.signal.append(i.signal.unsqueeze(0))
 
         self.sn_time = torch.stack(self.sn_time)
         self.signal_time = torch.stack(self.signal_time)
+        self.signal = torch.stack(self.signal)
 
     def dataloader(self, batch_size=1, shuffle=True):
         return DataLoader(self, batch_size=batch_size, shuffle=shuffle)
