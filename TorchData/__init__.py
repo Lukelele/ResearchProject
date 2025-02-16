@@ -122,6 +122,41 @@ def set_random_time(canvas, t_start, t_end):
 
     return canvas
 
+# Sellmeier equation coefficients for quartz
+B1, B2, B3 = 0.6961663, 0.4079426, 0.8974794
+C1, C2, C3 = (0.0684043)**2, (0.1162414)**2, (9.896161)**2
+
+def refractive_index(lambda_um):
+    """Calculate refractive index using the Sellmeier equation."""
+    lambda_sq = lambda_um**2
+    return np.sqrt(1 + (B1 * lambda_sq) / (lambda_sq - C1) +
+                      (B2 * lambda_sq) / (lambda_sq - C2) +
+                      (B3 * lambda_sq) / (lambda_sq - C3))
+
+selected_wavelength = 0.4  # µm
+n_selected = refractive_index(selected_wavelength)
+
+# Define dispersion step size based on refractive index
+step_size = n_selected * 1  # Scale for visualization
+
+
+def monte_carlo_dispersion(data, num_steps=50, step_size=1):
+    x_index_max, y_index_max = data.shape[0] - 1, data.shape[1] - 1
+
+    photon_coords = np.argwhere(data != 0)
+    photon_values = data[data != 0]
+
+    dx = np.random.normal(0, step_size, size=len(photon_coords))
+    dy = np.random.normal(0, step_size, size=len(photon_coords))
+
+    new_x = np.clip(photon_coords[:, 0] + dx, 0, x_index_max).astype(int)
+    new_y = np.clip(photon_coords[:, 1] + dy, 0, y_index_max).astype(int)
+
+    new_data = np.zeros_like(data)
+    new_data[new_x, new_y] = photon_values
+
+    return new_data
+
 
 # --------- Torch Data Class -----------
 class TORCHData:
@@ -157,6 +192,7 @@ class TORCHData:
         draw_line(self.signal, pr, angle)
         draw_line(self.signal, pl, angle)
         random_remove_points(self.signal, self.n_remove)
+        self.signal = monte_carlo_dispersion(self.signal, num_steps=50, step_size=step_size)
         self.signal_time, time_end = set_continuous_time(self.signal, 100)
         self.noise = generate_noise(self.signal, p=0.1)
         self.noise_time = set_random_time(self.noise, 100, time_end+10)

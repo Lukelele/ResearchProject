@@ -21,7 +21,7 @@ def start(argv, model_name):
 
 def main(train_dataloader, model, epoch, model_path):
     model = model().to(device)
-    model = torch.nn.DataParallel(model)
+    #model = torch.nn.DataParallel(model)
     model = model.to(device)
     loss_function = torch.nn.MSELoss()
     optimiser = torch.optim.Adam(model.parameters(), lr=0.01)
