@@ -2,6 +2,7 @@ import sys
 import torch
 import TorchData
 import cmd_core
+import uuid
 
 class HybridTransformer(torch.nn.Module):
     def __init__(self, embed_dim=64, num_heads=1, num_layers=2):
@@ -65,13 +66,7 @@ class HybridTransformer(torch.nn.Module):
 
 if __name__ == "__main__":
     if int(len(sys.argv)) == 4 or int(len(sys.argv)) == 5:
-        PROGNAME = sys.argv[0]
-        NUM_DATA = int(sys.argv[1])
-        BATCH_SIZE = int(sys.argv[2])
-        EPOCH = int(sys.argv[3])
-        MODEL_PATH = "HybridTransformer"
-        if int(len(sys.argv)) == 5:
-            MODEL_PATH = sys.argv[4]
+        NUM_DATA, BATCH_SIZE, EPOCH, MODEL_PATH = cmd_core.start(sys.argv, "HybridTransformer")
         train_dataset = TorchData.TORCHDataset(num_data=NUM_DATA)
         train_dataloader = train_dataset.dataloader(batch_size=BATCH_SIZE, shuffle=True)
         cmd_core.main(train_dataloader, HybridTransformer, EPOCH, MODEL_PATH)

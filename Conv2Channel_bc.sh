@@ -25,6 +25,7 @@ conda activate denosing-data
 
 export $(grep -v '^#' .env | xargs)
 MODEL_PATH="Conv2Channel_${NUM_DATA}_${BATCH_SIZE}_${EPOCH}"
+MODEL_PATH=$(echo $MODEL_PATH | tr -d '\r\n')
 
 srun python Conv2Channel_cmd.py $NUM_DATA $BATCH_SIZE $EPOCH $MODEL_PATH
 

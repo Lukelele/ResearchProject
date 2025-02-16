@@ -2,6 +2,7 @@ import sys
 import torch
 import TorchData
 import cmd_core
+import uuid
 
 class ConvolutionAutoencoder(torch.nn.Module):
     def __init__(self):
@@ -40,13 +41,7 @@ class ConvolutionAutoencoder(torch.nn.Module):
 
 if __name__ == "__main__":
     if int(len(sys.argv)) == 4 or int(len(sys.argv)) == 5:
-        PROGNAME = sys.argv[0]
-        NUM_DATA = int(sys.argv[1])
-        BATCH_SIZE = int(sys.argv[2])
-        EPOCH = int(sys.argv[3])
-        MODEL_PATH = "Conv2Channel"
-        if int(len(sys.argv)) == 5:
-            MODEL_PATH = sys.argv[4]
+        NUM_DATA, BATCH_SIZE, EPOCH, MODEL_PATH = cmd_core.start(sys.argv, "Conv2Channel")
         train_dataset = TorchData.TORCHDataset2Channel(num_data=NUM_DATA)
         train_dataloader = train_dataset.dataloader(batch_size=BATCH_SIZE, shuffle=True)
         cmd_core.main(train_dataloader, ConvolutionAutoencoder, EPOCH, MODEL_PATH)
