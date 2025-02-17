@@ -258,7 +258,7 @@ class TORCHDataset(Dataset):
         return len(self.sn_time)
 
     def __getitem__(self, idx):
-        return torch.tensor(self.sn_time[idx]), torch.tensor(self.signal_time[idx])
+        return self.sn_time[idx].clone().detach(), self.signal_time[idx].clone().detach()
 
 
 class TORCHDataset2Channel(Dataset):
@@ -291,4 +291,4 @@ class TORCHDataset2Channel(Dataset):
         return len(self.x)
 
     def __getitem__(self, idx):
-        return torch.tensor(self.x[idx]), torch.tensor(self.y[idx])
+        return self.sn_time[idx].clone().detach(), self.signal_time[idx].clone().detach()
