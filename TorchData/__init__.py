@@ -63,15 +63,40 @@ def draw_line(canvas, start, angle, max_lit_px=400):
         y -= dy
         lit_pixels += 1
 
-def random_remove_points(canvas, n_points):
+def remove_signal(canvas, n_points):
     non_zero_indices = np.argwhere(canvas != 0)
     if len(non_zero_indices) == 0:
+        return
+    
+    if n_points == -1:
         return
 
     if n_points >= 1:
         n_remove = min(n_points, len(non_zero_indices))
     else:
         n_remove = int(n_points * len(non_zero_indices))
+
+    remove_indices = np.random.choice(len(non_zero_indices), n_remove, replace=False)
+    for idx in remove_indices:
+        y, x = non_zero_indices[idx]
+        canvas[y, x] = 0
+
+def retain_signal(canvas, n_points):
+    non_zero_indices = np.argwhere(canvas != 0)
+    if len(non_zero_indices) == 0:
+        return
+    
+    if n_points == -1:
+        return
+
+    if n_points >= 1:
+        if len(non_zero_indices) < n_points:
+            n_remove = 0
+            print("Warning: n_points is greater than the number of non-zero points.")
+        else:
+            n_remove = len(non_zero_indices) - n_points
+    else:
+        n_remove = int((1 - n_points) * len(non_zero_indices))
 
     remove_indices = np.random.choice(len(non_zero_indices), n_remove, replace=False)
     for idx in remove_indices:
@@ -160,7 +185,7 @@ def monte_carlo_dispersion(data, num_steps=50, step_size=1):
 
 # --------- Torch Data Class -----------
 class TORCHData:
-    def __init__(self, t_dim, x_dim, y_dim, n_remove=10):
+    def __init__(self, t_dim, x_dim, y_dim, signal_count=1, noise_density=0.1):
         """
         Initiate torch datasets.
         Args:
@@ -172,9 +197,10 @@ class TORCHData:
         self.t_dim = t_dim
         self.x_dim = x_dim
         self.y_dim = y_dim
-        self.n_remove = n_remove
+        self.signal_count = signal_count
         self.signal = np.zeros((self.x_dim, self.y_dim), dtype=np.float32)
         self.noise = np.zeros((self.x_dim, self.y_dim), dtype=np.float32)
+        self.noise_density = noise_density
         self.sn = np.zeros((self.x_dim, self.y_dim), dtype=np.float32)
         self.signal_time = np.zeros((self.x_dim, self.y_dim), dtype=np.float32)
         self.noise_time = np.zeros((self.x_dim, self.y_dim), dtype=np.float32)
@@ -191,10 +217,10 @@ class TORCHData:
         angle = np.random.randint(10, 40)
         draw_line(self.signal, pr, angle)
         draw_line(self.signal, pl, angle)
-        random_remove_points(self.signal, self.n_remove)
+        retain_signal(self.signal, self.signal_count)
         self.signal = monte_carlo_dispersion(self.signal, num_steps=50, step_size=step_size)
         self.signal_time, time_end = set_continuous_time(self.signal, 100)
-        self.noise = generate_noise(self.signal, p=0.1)
+        self.noise = generate_noise(self.signal, p=self.noise_density)
         self.noise_time = set_random_time(self.noise, 100, time_end+10)
         self.sn = self.signal + self.noise
         self.sn_time = self.signal_time + self.noise_time
@@ -209,8 +235,8 @@ class TORCHData:
 
 
 class TORCHDataset(Dataset):
-    def __init__(self, t=100, x=120, y=92, n_remove=50, num_data = 1):
-        data = np.array([TORCHData(t, x, y, n_remove) for _ in range(num_data)])
+    def __init__(self, t=100, x=120, y=92, num_data = 1, signal_count=-1, noise_density=0.1):
+        data = np.array([TORCHData(t, x, y, signal_count, noise_density) for _ in range(num_data)])
 
         self.sn_time = [] # signal + noise, (time value)
         self.signal_time = [] # signal (time value)
@@ -236,8 +262,8 @@ class TORCHDataset(Dataset):
 
 
 class TORCHDataset2Channel(Dataset):
-    def __init__(self, t=100, x=120, y=92, n_remove=50, num_data = 1):
-        data = np.array([TORCHData(t, x, y, n_remove) for _ in range(num_data)])
+    def __init__(self, t=100, x=120, y=92, num_data = 1, signal_count=-1, noise_density=0.1):
+        data = np.array([TORCHData(t, x, y, signal_count, noise_density) for _ in range(num_data)])
 
         self.x = []
         self.y = []
