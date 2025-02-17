@@ -19,7 +19,8 @@ def plot2d(data, ax: plt.Axes = None, z_lim=(None, None)):
 
     return im
 
-def plot3d(data, ax: plt.Axes = None, elev=30, azim=-45, roll=0, aspect=(1, 1, 1), zoom=0.8, z_lim=(None, None)):
+def plot3d(data, ax: plt.Axes = None, elev=30, azim=-45, roll=0, aspect=(1, 1, 1), zoom=0.8,
+           x_lim=(0, None), y_lim=(0, None), z_lim=(None, None)):
     if ax is None:
         ax = plt.figure().add_subplot(projection='3d')
     data_np = data.numpy().squeeze()
@@ -34,6 +35,8 @@ def plot3d(data, ax: plt.Axes = None, elev=30, azim=-45, roll=0, aspect=(1, 1, 1
     ax.set_box_aspect(aspect, zoom=zoom)
     if z_lim != (None, None):
         ax.set_zlim(z_lim)
+    ax.set_xlim(x_lim)
+    ax.set_ylim(y_lim)
 
     return im
 
@@ -57,13 +60,18 @@ def compare_plot3d(clean_data, noisy_data, pred_data,
     z_max = max(clean_data.max(), noisy_data.max(), pred_data.max()) + 10
     z_min = max(min(clean_data.min(), noisy_data.min(), pred_data.min()) - 10, 0)
     z_lim = (z_min, z_max)
+    x_lim = (0, clean_data.shape[1])
+    y_lim = (0, clean_data.shape[0])
     fig, ax = plt.subplots(1, 3, figsize=figsize,
                              subplot_kw={'projection': '3d'})
-    im = plot3d(clean_data, ax[0], elev=elev, azim=azim, roll=roll, aspect=aspect, zoom=zoom, z_lim=z_lim)
+    im = plot3d(clean_data, ax[0], elev=elev, azim=azim, roll=roll, aspect=aspect, zoom=zoom,
+                x_lim=x_lim, y_lim=y_lim, z_lim=z_lim)
     ax[0].set_title("Original Image")
-    plot3d(noisy_data, ax[1], elev=elev, azim=azim, roll=roll, aspect=aspect, zoom=zoom, z_lim=z_lim)
+    plot3d(noisy_data, ax[1], elev=elev, azim=azim, roll=roll, aspect=aspect, zoom=zoom,
+           x_lim=x_lim, y_lim=y_lim, z_lim=z_lim)
     ax[1].set_title("Noisy Image")
-    plot3d(pred_data, ax[2], elev=elev, azim=azim, roll=roll, aspect=aspect, zoom=zoom, z_lim=z_lim)
+    plot3d(pred_data, ax[2], elev=elev, azim=azim, roll=roll, aspect=aspect, zoom=zoom,
+           x_lim=x_lim, y_lim=y_lim, z_lim=z_lim)
     ax[2].set_title("Reconstructed Image")
 
     cbar = fig.colorbar(im, ax=ax, orientation=cbar_orientation, fraction=0.01, pad=0.05, location=cbar_location)
