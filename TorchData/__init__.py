@@ -245,33 +245,57 @@ class TORCHDataset(Dataset):
     def __init__(self, t=100, x=120, y=92, num_data = 1, signal_count=-1, noise_density=0.1):
         data = np.array([TORCHData(t, x, y, signal_count, noise_density) for _ in range(num_data)])
 
-        self.sn_time = [] # signal + noise, (time value)
-        self.signal_time = [] # signal (time value)
+        self.x = [] # signal + noise, (time value)
+        self.y = [] # signal (time value)
         self.signal = []
-        self.original = []
-        self.original_time = []
 
         for i in data:
-            self.sn_time.append(i.sn_time.unsqueeze(0))
-            self.signal_time.append(i.signal_time.unsqueeze(0))
+            self.x.append(i.sn_time.unsqueeze(0))
+            self.y.append(i.signal_time.unsqueeze(0))
             self.signal.append(i.signal.unsqueeze(0))
-            self.original_time.append(i.original_time.unsqueeze(0))
+
+        self.x = torch.stack(self.x)
+        self.y = torch.stack(self.y)
+        self.signal = torch.stack(self.signal)
+
+    def dataloader(self, batch_size=1, shuffle=True):
+        return DataLoader(self, batch_size=batch_size, shuffle=shuffle)
+
+    def __len__(self):
+        return len(self.x)
+
+    def __getitem__(self, idx):
+        return self.x[idx].clone().detach(), self.y[idx].clone().detach()
+    
+
+class TORCHFullReconstructionDataset(Dataset):
+    def __init__(self, t=100, x=120, y=92, num_data = 1, signal_count=-1, noise_density=0.1):
+        data = np.array([TORCHData(t, x, y, signal_count, noise_density) for _ in range(num_data)])
+
+        self.x = [] # signal + noise, (time value)
+        self.signal = []
+        self.original = []
+        self.y = []
+
+        for i in data:
+            self.x.append(i.sn_time.unsqueeze(0))
+            self.signal.append(i.signal.unsqueeze(0))
+            self.y.append(i.original_time.unsqueeze(0))
             self.original.append(i.original.unsqueeze(0))
 
-        self.sn_time = torch.stack(self.sn_time)
-        self.signal_time = torch.stack(self.signal_time)
+        self.x = torch.stack(self.x)
         self.signal = torch.stack(self.signal)
-        self.original_time = torch.stack(self.original_time)
+        self.y = torch.stack(self.y)
         self.original = torch.stack(self.original)
 
     def dataloader(self, batch_size=1, shuffle=True):
         return DataLoader(self, batch_size=batch_size, shuffle=shuffle)
 
     def __len__(self):
-        return len(self.sn_time)
+        return len(self.x)
 
     def __getitem__(self, idx):
-        return self.sn_time[idx].clone().detach(), self.original_time[idx].clone().detach()
+        return self.x[idx].clone().detach(), self.y[idx].clone().detach()
 
 
 class TORCHDataset2Channel(Dataset):
@@ -311,4 +335,4 @@ class TORCHDataset2Channel(Dataset):
 
     def __getitem__(self, idx):
         return self.x[idx].clone().detach(), self.y[idx].clone().detach()
-
+    
