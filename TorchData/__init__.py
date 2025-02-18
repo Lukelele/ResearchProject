@@ -185,7 +185,7 @@ def monte_carlo_dispersion(data, num_steps=50, step_size=1):
 
 # --------- Torch Data Class -----------
 class TORCHData:
-    def __init__(self, t_dim, x_dim, y_dim, signal_count=1, noise_density=0.1):
+    def __init__(self, t_dim, x_dim, y_dim, signal_count=1, noise_density=0.1, dispersion_intensity=1):
         """
         Initiate torch datasets.
         Args:
@@ -208,6 +208,7 @@ class TORCHData:
         self.signal_time = np.zeros(shape, dtype=np.float32)
         self.noise_time = np.zeros(shape, dtype=np.float32)
         self.sn_time = np.zeros(shape, dtype=np.float32)
+        self.dispersion_intensity = dispersion_intensity
         self.generate()
         self._to_tensor()
 
@@ -222,7 +223,7 @@ class TORCHData:
         draw_line(self.signal, pl, angle)
         self.original = self.signal.copy()
         retain_signal(self.signal, self.signal_count)
-        self.signal = monte_carlo_dispersion(self.signal, num_steps=50, step_size=step_size)
+        self.signal = monte_carlo_dispersion(self.signal, num_steps=50, step_size=self.dispersion_intensity)
         self.original_time, time_end = set_continuous_time(self.original, 100)
         self.signal_time, time_end = set_continuous_time(self.signal, 100)
         self.noise = generate_noise(self.signal, p=self.noise_density)
@@ -242,8 +243,8 @@ class TORCHData:
 
 
 class TORCHDataset(Dataset):
-    def __init__(self, t=100, x=120, y=92, num_data = 1, signal_count=-1, noise_density=0.1):
-        data = np.array([TORCHData(t, x, y, signal_count, noise_density) for _ in range(num_data)])
+    def __init__(self, t=100, x=120, y=92, num_data = 1, signal_count=-1, noise_density=0.1, dispersion_intensity=1):
+        data = np.array([TORCHData(t, x, y, signal_count, noise_density, dispersion_intensity) for _ in range(num_data)])
 
         self.x = [] # signal + noise, (time value)
         self.y = [] # signal (time value)
@@ -269,13 +270,13 @@ class TORCHDataset(Dataset):
     
 
 class TORCHFullReconstructionDataset(Dataset):
-    def __init__(self, t=100, x=120, y=92, num_data = 1, signal_count=-1, noise_density=0.1):
-        data = np.array([TORCHData(t, x, y, signal_count, noise_density) for _ in range(num_data)])
+    def __init__(self, t=100, x=120, y=92, num_data = 1, signal_count=-1, noise_density=0.1, dispersion_intensity=1):
+        data = np.array([TORCHData(t, x, y, signal_count, noise_density, dispersion_intensity) for _ in range(num_data)])
 
         self.x = [] # signal + noise, (time value)
+        self.y = []
         self.signal = []
         self.original = []
-        self.y = []
 
         for i in data:
             self.x.append(i.sn_time.unsqueeze(0))
