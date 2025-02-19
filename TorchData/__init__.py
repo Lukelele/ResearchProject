@@ -243,7 +243,7 @@ class TORCHData:
 
 
 class TORCHDataset(Dataset):
-    def __init__(self, t=100, x=120, y=92, num_data = 1, signal_count=-1, noise_density=0.1, dispersion_intensity=1):
+    def __init__(self, t=100, x=128, y=88, num_data = 1, signal_count=-1, noise_density=0.1, dispersion_intensity=1, data_precision=torch.float32):
         data = np.array([TORCHData(t, x, y, signal_count, noise_density, dispersion_intensity) for _ in range(num_data)])
 
         self.x = [] # signal + noise, (time value)
@@ -255,9 +255,9 @@ class TORCHDataset(Dataset):
             self.y.append(i.signal_time.unsqueeze(0))
             self.signal.append(i.signal.unsqueeze(0))
 
-        self.x = torch.stack(self.x)
-        self.y = torch.stack(self.y)
-        self.signal = torch.stack(self.signal)
+        self.x = torch.stack(self.x).to(data_precision)
+        self.y = torch.stack(self.y).to(data_precision)
+        self.signal = torch.stack(self.signal).to(data_precision)
 
     def dataloader(self, batch_size=1, shuffle=True):
         return DataLoader(self, batch_size=batch_size, shuffle=shuffle)
@@ -270,7 +270,7 @@ class TORCHDataset(Dataset):
     
 
 class TORCHFullReconstructionDataset(Dataset):
-    def __init__(self, t=100, x=120, y=92, num_data = 1, signal_count=-1, noise_density=0.1, dispersion_intensity=1):
+    def __init__(self, t=100, x=128, y=88, num_data = 1, signal_count=-1, noise_density=0.1, dispersion_intensity=1, data_precision=torch.float32):
         data = np.array([TORCHData(t, x, y, signal_count, noise_density, dispersion_intensity) for _ in range(num_data)])
 
         self.x = [] # signal + noise, (time value)
@@ -284,10 +284,10 @@ class TORCHFullReconstructionDataset(Dataset):
             self.y.append(i.original_time.unsqueeze(0))
             self.original.append(i.original.unsqueeze(0))
 
-        self.x = torch.stack(self.x)
-        self.signal = torch.stack(self.signal)
-        self.y = torch.stack(self.y)
-        self.original = torch.stack(self.original)
+        self.x = torch.stack(self.x).to(data_precision)
+        self.signal = torch.stack(self.signal).to(data_precision)
+        self.y = torch.stack(self.y).to(data_precision)
+        self.original = torch.stack(self.original).to(data_precision)
 
     def dataloader(self, batch_size=1, shuffle=True):
         return DataLoader(self, batch_size=batch_size, shuffle=shuffle)
