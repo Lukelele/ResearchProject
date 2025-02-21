@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=HybridTransformer
+#SBATCH --job-name=DenoisingData
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:2
 #SBATCH --partition gpu
@@ -23,11 +23,10 @@ printf "\n\n"
 . ~/initMamba.sh
 conda activate denosing-data
 
-export $(grep -v '^#' .env | xargs)
-MODEL_PATH="HybridTransformer_${NUM_DATA}_${BATCH_SIZE}_${EPOCH}"
-MODEL_PATH=$(echo $MODEL_PATH | tr -d '\r\n')
+ENV_FILE_NAME=".env1"
+MODEL_NAME="HybridTransformer"
 
-srun python HybridTransformer_cmd.py $NUM_DATA $BATCH_SIZE $EPOCH $MODEL_PATH
+srun python core.py $ENV_FILE_NAME $MODEL_NAME
 
 # Output the end time
 printf "\n\n"
