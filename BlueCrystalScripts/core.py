@@ -124,7 +124,7 @@ if __name__ == "__main__":
                 return x + self.pos_embed[:, :seq]
 
         class HybridTransformer(torch.nn.Module):
-            def __init__(self, embed_dim=64, num_heads=2, num_layers=2):
+            def __init__(self, embed_dim=64, num_heads=8, num_layers=4):
                 super().__init__()
 
                 # CNN Encoder
@@ -147,6 +147,7 @@ if __name__ == "__main__":
                         dim_feedforward=4 * embed_dim,
                         batch_first=True,
                         norm_first=True,  # Better stability
+                        activation="gelu",
                         dropout=0.1
                     ),
                     num_layers=num_layers

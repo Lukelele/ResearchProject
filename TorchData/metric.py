@@ -2,10 +2,16 @@ import torch.nn.functional as F
 import torch
 from sklearn.metrics import roc_auc_score, f1_score
 
-def get_metrics(original, denoised):
+def get_metrics(original, denoised, noisy=None):
     original_binary = (original > 0).float()
     denoised_binary = (denoised > 0).float()
+    noisy_binary = (noisy > 0).float()
 
+    signal_retention_rate = calculate_signal_retention_rate(original_binary, denoised_binary)
+    if noisy is None:
+        noise_removal_rate = "Not Available"
+    else:
+        noise_removal_rate = calculate_noise_removal_rate(original_binary, denoised_binary, noisy_binary)
     mse = calculate_mse_torch(original, denoised)
     psnr = calculate_psnr_torch(original, denoised)
     ssim = calculate_ssim_torch(original, denoised)
@@ -13,6 +19,8 @@ def get_metrics(original, denoised):
     f1 = f1_score(original_binary.flatten().cpu().numpy(), denoised_binary.flatten().cpu().numpy())
 
     dict_metrics = {
+        "Signal Retention Rate": signal_retention_rate,
+        "Noise Removal Rate": noise_removal_rate,
         "MSE": mse,
         "PSNR": psnr,
         "SSIM": ssim,
@@ -21,6 +29,20 @@ def get_metrics(original, denoised):
     }
     return dict_metrics
 
+
+def calculate_signal_retention_rate(original, denoised):
+    num_signal_predicted = len(torch.argwhere((denoised.flatten().cpu() == 1.0) & (original.flatten().cpu() == 1.0)).squeeze())
+    num_signal = len(torch.argwhere(original.flatten() == 1.0).squeeze())
+    signal_retention = num_signal_predicted / num_signal
+    return signal_retention
+
+def calculate_noise_removal_rate(original, denoised, noisy):
+    num_signal = len(torch.argwhere((noisy.flatten().cpu() == 1.0) & (original.flatten().cpu() == 1.0)).squeeze())
+    num_noise = len(torch.nonzero(noisy.flatten())) - num_signal
+    num_signal_predicted = len(torch.argwhere((denoised.flatten().cpu() == 1.0) & (original.flatten().cpu() == 1.0)).squeeze())
+    num_noise_predicted = len(torch.nonzero(denoised.flatten())) - num_signal_predicted
+    noise_removal_rate = (num_noise - num_noise_predicted) / num_noise
+    return noise_removal_rate
 
 def calculate_mse_torch(original, denoised):
     mse = torch.mean((original - denoised) ** 2)
