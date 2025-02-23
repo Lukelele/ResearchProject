@@ -306,6 +306,13 @@ class TORCHData(Dataset):
         self.input_data = np.zeros(shape, dtype=np.float32)
         self.target_data = np.zeros(shape, dtype=np.float32)
         self.predict_data = np.zeros(shape, dtype=np.float32)
+
+        self.select_mask = np.zeros(shape, dtype=np.float32)
+        self.continuous_time_maps = np.zeros(shape, dtype=np.float32)
+        self.noise_map = np.zeros(shape, dtype=np.float32)
+        self.t_start = np.zeros(num_data, dtype=np.float32)
+        self.t_end = np.zeros(num_data, dtype=np.float32)
+        self.random_time_maps = np.zeros(shape, dtype=np.float32)
         if auto_generate:
             self.generate()
         self.set_input_target()
@@ -317,24 +324,24 @@ class TORCHData(Dataset):
         draw_line(self.original, pr, angles=angles)
         draw_line(self.original, pl, angles=angles)
 
-        select_mask = select_signal(self.original, n_points_range=self.signal_count, mode=self.signal_select_mode)
-        self.signal = self.original * select_mask
+        self.select_mask = select_signal(self.original, n_points_range=self.signal_count, mode=self.signal_select_mode)
+        self.signal = self.original * self.select_mask
 
         self.signal = monte_carlo_dispersion(self.signal, blur_level=self.blur_level, dispersion_level=self.dispersion_level)
 
-        continuous_time_maps = get_continuous_time_maps(self.original, self.t_offset)
-        self.original_time = self.original * continuous_time_maps
-        self.signal_time = self.signal * continuous_time_maps
+        self.continuous_time_maps = get_continuous_time_maps(self.original, self.t_offset)
+        self.original_time = self.original * self.continuous_time_maps
+        self.signal_time = self.signal * self.continuous_time_maps
 
-        noisy_map = generate_binary_noise(*(self.num_data, self.y, self.x), p=self.noise_density)
-        self.noise = noisy_map * self.noise_magnitude
+        self.noise_map = generate_binary_noise(*(self.num_data, self.y, self.x), p=self.noise_density)
+        self.noise = self.noise_map * self.noise_magnitude
         self.noise[self.signal != 0] = 0
-        self.noise_count = np.where(noisy_map, 1, 0).sum(axis=(1, 2))
+        self.noise_count = np.where(self.noise_map, 1, 0).sum(axis=(1, 2))
 
-        t_start = np.ones(self.num_data) + self.t_offset
-        t_end = np.max(self.original_time, axis=(1, 2)) + 10
-        random_time_maps = get_random_time_maps(self.original, t_start, t_end)
-        self.noise_time = self.noise * random_time_maps
+        self.t_start = np.ones(self.num_data) + self.t_offset
+        self.t_end = np.max(self.original_time, axis=(1, 2)) + 10
+        self.random_time_maps = get_random_time_maps(self.original, self.t_start, self.t_end)
+        self.noise_time = self.noise * self.random_time_maps
 
         self.sn = self.signal + self.noise
         self.sn_time = self.signal_time + self.noise_time
