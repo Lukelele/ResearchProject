@@ -11,10 +11,10 @@ def format_title(text: str):
 
 accept_fields = Literal[
     'input_data', 'target_data', 'predict_data',
-    'original', 'original_time',
-    'signal', 'signal_time',
-    'noise', 'noise_time',
-    'sn', 'sn_time'
+    'original', 'original_time', 'original_time_norm',
+    'signal', 'signal_time', 'signal_time_norm',
+    'noise', 'noise_time', 'noise_time_norm',
+    'sn', 'sn_time', 'sn_time_norm',
 ]
 
 def plot2d(data_list, titles: List[str]):

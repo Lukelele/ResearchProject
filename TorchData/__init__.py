@@ -274,7 +274,11 @@ def generate_binary_noise(*dim, p=0.001):
     random_map = np.random.rand(*dim)
     return (random_map < p).astype(np.float32)
 
-mode_types = Literal["normal", "2channel", "full_construction"]
+mode_types = Literal[
+    "normal", 'normal_norm',
+    "2channel", '2channel_norm',
+    "full_construction", 'full_construction_norm'
+]
 class TORCHData(Dataset):
     def __init__(self, x=88, y=128, t_offset=0, num_data=1, auto_generate=True,
                  signal_count=(20, 30), signal_select_mode:select_mode_types="retain",
@@ -313,6 +317,12 @@ class TORCHData(Dataset):
         self.t_start = np.zeros(num_data, dtype=np.float32)
         self.t_end = np.zeros(num_data, dtype=np.float32)
         self.random_time_maps = np.zeros(shape, dtype=np.float32)
+
+        self.original_time_norm = np.zeros(shape, dtype=np.float32)
+        self.signal_time_norm = np.zeros(shape, dtype=np.float32)
+        self.noise_time_norm = np.zeros(shape, dtype=np.float32)
+        self.sn_time_norm = np.zeros(shape, dtype=np.float32)
+
         if auto_generate:
             self.generate()
         self.set_input_target()
@@ -346,13 +356,27 @@ class TORCHData(Dataset):
         self.sn = self.signal + self.noise
         self.sn_time = self.signal_time + self.noise_time
 
+        self.original_time_norm = self.original_time / self.t_end.reshape(-1, 1, 1)
+        self.signal_time_norm = self.signal_time / self.t_end.reshape(-1, 1, 1)
+        self.noise_time_norm = self.noise_time / self.t_end.reshape(-1, 1, 1)
+        self.sn_time_norm = self.sn_time / self.t_end.reshape(-1, 1, 1)
+
     def set_input_target(self):
         if self.mode == "2channel":
             self.input_data = np.stack((self.sn_time, self.sn), axis=1)
             self.target_data = np.stack((self.original_time, self.original), axis=1)
+        elif self.mode == "2channel_norm":
+            self.input_data = np.stack((self.sn_time_norm, self.sn), axis=1)
+            self.target_data = np.stack((self.original_time_norm, self.original), axis=1)
         elif self.mode == "full_construction":
             self.input_data = self.sn_time
             self.target_data = self.original_time
+        elif self.mode == "full_construction_norm":
+            self.input_data = self.sn_time_norm
+            self.target_data = self.original_time_norm
+        elif self.mode == "normal_norm":
+            self.input_data = self.sn_time_norm
+            self.target_data = self.signal_time_norm
         else:
             self.input_data = self.sn_time
             self.target_data = self.signal_time
