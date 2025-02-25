@@ -185,17 +185,43 @@ n_selected = refractive_index(selected_wavelength)
 # Define dispersion step size based on refractive index
 quartz_step_size = n_selected * 1  # Scale for visualization
 
-def monte_carlo_dispersion(canvas, blur_level=5, dispersion_level=1):
+def add_dispersion(canvas, dispersion_level=1):
     """
     Simulates dispersion of photons in a 3D canvas.
+    Args:
+        canvas (np.ndarray): A 3D numpy array (n, y, x) where the dispersion is simulated.
+        dispersion_level (float): Standard deviation of the dispersion.
+
+    Returns:
+        np.ndarray: A 3D numpy array (n, y, x) with dispersed photons.
+
+    """
+    new_canvas = np.zeros_like(canvas)
+    n, y, x = canvas.shape
+
+    c_i, c_y, c_x = np.where(canvas == 1)
+    values = canvas[canvas != 0]
+
+    dx = np.random.normal(0, dispersion_level, size=len(c_x))
+    dy = np.random.normal(0, dispersion_level, size=len(c_y))
+
+    new_x = np.clip(c_x + dx, 0, x - 1).astype(int)
+    new_y = np.clip(c_y + dy, 0, y - 1).astype(int)
+
+    new_canvas[c_i, new_y, new_x] = values
+
+    return new_canvas
+
+def mc_blur(canvas, blur_level=5, dispersion_level=1):
+    """
+    Simulates chromatic blur of photons in a 3D canvas.
     Args:
         canvas (np.ndarray): A 3D numpy array (n, y, x) where the dispersion is simulated.
         blur_level (int): Number of times to simulate dispersion.
         dispersion_level (float): Standard deviation of the dispersion.
 
     Returns:
-        np.ndarray: A 3D numpy array (n, y, x) with dispersed photons.
-
+        np.ndarray: A 3D numpy array (n, y, x) with chromatic blur noise.
     """
     new_canvas = np.zeros_like(canvas)
     n, y, x = canvas.shape
@@ -211,6 +237,8 @@ def monte_carlo_dispersion(canvas, blur_level=5, dispersion_level=1):
         new_y = np.clip(c_y + dy, 0, y-1).astype(int)
 
         new_canvas[c_i, new_y, new_x] = values
+
+    new_canvas[c_i, c_y, c_x] = 0
 
     return new_canvas
 
@@ -300,7 +328,10 @@ class TORCHData(Dataset):
         shape = (self.num_data, self.y, self.x)
         self.original = np.zeros(shape, dtype=np.float32)
         self.original_time = np.zeros(shape, dtype=np.float32)
+        self.signal_no_dispersion = np.zeros(shape, dtype=np.float32)
+        self.signal_no_dispersion_time = np.zeros(shape, dtype=np.float32)
         self.signal = np.zeros(shape, dtype=np.float32)
+        self.blur_noise = np.zeros(shape, dtype=np.float32)
         self.noise = np.zeros(shape, dtype=np.float32)
         self.noise_count = np.zeros(num_data, dtype=np.float32)
         self.sn = np.zeros(shape, dtype=np.float32)
@@ -336,15 +367,20 @@ class TORCHData(Dataset):
 
         self.select_mask = select_signal(self.original, n_points_range=self.signal_count, mode=self.signal_select_mode)
         self.signal = self.original * self.select_mask
+        self.signal_no_dispersion = self.signal.copy()
 
-        self.signal = monte_carlo_dispersion(self.signal, blur_level=self.blur_level, dispersion_level=self.dispersion_level)
+        self.signal = add_dispersion(self.signal, dispersion_level=self.dispersion_level)
+
+        self.blur_noise = mc_blur(self.signal, blur_level=self.blur_level, dispersion_level=self.dispersion_level)
 
         self.continuous_time_maps = get_continuous_time_maps(self.original, self.t_offset)
         self.original_time = self.original * self.continuous_time_maps
         self.signal_time = self.signal * self.continuous_time_maps
+        self.signal_no_dispersion_time = self.signal_no_dispersion * self.continuous_time_maps
 
         self.noise_map = generate_binary_noise(*(self.num_data, self.y, self.x), p=self.noise_density)
         self.noise = self.noise_map * self.noise_magnitude
+        self.noise = np.clip(self.noise + self.blur_noise, 0, 1)
         self.noise[self.signal != 0] = 0
         self.noise_count = np.where(self.noise_map, 1, 0).sum(axis=(1, 2))
 
