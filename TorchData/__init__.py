@@ -1,8 +1,8 @@
-from typing import Literal
 import numpy as np
 from torch.utils.data import DataLoader, Dataset
 from .visual import *
 from .metric import *
+from .loss_func import *
 
 def draw_on_canvas(canvas, x_coords, y_coords, num_points, value):
     """
@@ -275,9 +275,9 @@ def generate_binary_noise(*dim, p=0.001):
     return (random_map < p).astype(np.float32)
 
 mode_types = Literal[
-    "normal", 'normal_norm',
-    "2channel", '2channel_norm',
-    "full_construction", 'full_construction_norm'
+    "normal", 'normal_norm', 'normal_standardise',
+    "2channel", '2channel_norm', '2channel_standardise',
+    "full_construction", 'full_construction_norm', 'full_construction_standardise'
 ]
 class TORCHData(Dataset):
     def __init__(self, x=88, y=128, t_offset=0, num_data=1, auto_generate=True,

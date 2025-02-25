@@ -33,7 +33,7 @@ def plot2d(data_list, titles: List[str]):
         if type(data) == torch.Tensor:
             data = data.detach().cpu().numpy()
         data = data.squeeze()
-        im = ax[i // 3, i % 3].imshow(data, origin='lower', cmap='viridis', vmin=zmin, vmax=zmax)
+        im = ax[i // 3, i % 3].imshow(data, origin='lower', cmap='blues', vmin=zmin, vmax=zmax)
         ax[i // 3, i % 3].set_xlabel('X')
         ax[i // 3, i % 3].set_ylabel('Y')
         ax[i // 3, i % 3].set_title(format_title(titles[i]))
@@ -64,7 +64,7 @@ def plot3d(data_list, titles: List[str]):
         data = data.squeeze()
         y, x = data.nonzero()
         time_values = data[y, x]
-        im = ax[i // 3, i % 3].scatter(x, y, time_values, c=time_values, cmap='viridis', vmin=zmin, vmax=zmax)
+        im = ax[i // 3, i % 3].scatter(x, y, time_values, c=time_values, cmap='blues', vmin=zmin, vmax=zmax)
         ax[i // 3, i % 3].set_xlabel('X')
         ax[i // 3, i % 3].set_ylabel('Y')
         ax[i // 3, i % 3].set_zlabel('Time', rotation=90)

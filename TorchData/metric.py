@@ -31,18 +31,47 @@ def get_metrics(original, denoised, noisy=None):
 
 
 def calculate_signal_retention_rate(original, denoised):
-    num_signal_predicted = len(torch.argwhere((denoised.flatten().cpu() == 1.0) & (original.flatten().cpu() == 1.0)).squeeze())
-    num_signal = len(torch.argwhere(original.flatten() == 1.0).squeeze())
-    signal_retention = num_signal_predicted / num_signal
+
+    original_flat = original.flatten().cpu()
+    denoised_flat = denoised.flatten().cpu()
+
+    # Get the indices where both tensors have a value of 1.0
+    common_indices = torch.argwhere((denoised_flat == 1.0) & (original_flat == 1.0))
+    num_signal_predicted = common_indices.numel()  # Use .numel() instead of len(...squeeze())
+
+    # Get the indices where original tensor has a value of 1.0
+    original_indices = torch.argwhere(original_flat == 1.0)
+    num_signal = original_indices.numel()
+
+    # Avoid division by zero
+    signal_retention = num_signal_predicted / num_signal if num_signal != 0 else float('nan')
     return signal_retention
 
 def calculate_noise_removal_rate(original, denoised, noisy):
-    num_signal = len(torch.argwhere((noisy.flatten().cpu() == 1.0) & (original.flatten().cpu() == 1.0)).squeeze())
-    num_noise = len(torch.nonzero(noisy.flatten())) - num_signal
-    num_signal_predicted = len(torch.argwhere((denoised.flatten().cpu() == 1.0) & (original.flatten().cpu() == 1.0)).squeeze())
-    num_noise_predicted = len(torch.nonzero(denoised.flatten())) - num_signal_predicted
+    # Flatten and move tensors to CPU
+    noisy_flat = noisy.flatten().cpu()
+    original_flat = original.flatten().cpu()
+    denoised_flat = denoised.flatten().cpu()
+
+    # Count the number of signal pixels in the noisy and original tensors
+    num_signal = torch.argwhere((noisy_flat == 1.0) & (original_flat == 1.0)).numel()
+
+    # Total noise pixels is the nonzero elements in noisy minus the signal count
+    num_noise = torch.nonzero(noisy_flat).numel() - num_signal
+
+    # Count the number of signal pixels in the denoised prediction that match the original
+    num_signal_predicted = torch.argwhere((denoised_flat == 1.0) & (original_flat == 1.0)).numel()
+
+    # Total noise predicted is the nonzero elements in denoised minus the predicted signal count
+    num_noise_predicted = torch.nonzero(denoised_flat).numel() - num_signal_predicted
+
+    # Avoid division by zero
+    if num_noise == 0:
+        return float('nan')
+
     noise_removal_rate = (num_noise - num_noise_predicted) / num_noise
     return noise_removal_rate
+
 
 def calculate_mse_torch(original, denoised):
     mse = torch.mean((original - denoised) ** 2)
@@ -100,4 +129,4 @@ def calculate_ssim_torch(original, denoised, window_size=(11, 11)):
     ssim_map = ((2 * mu1 * mu2 + C1) * (2 * sigma12 + C2)) / ((mu1 ** 2 + mu2 ** 2 + C1) * (sigma1_sq + sigma2_sq + C2))
     ssim_map = torch.clamp(ssim_map, min=0.0, max=1.0)  # Ensure SSIM stays in [0, 1]
 
-    return ssim_map.mean().item()
+    return ssim_map.mean()
