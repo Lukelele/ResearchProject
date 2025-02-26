@@ -77,17 +77,29 @@ def calculate_noise_removal_rate(original, denoised, noisy):
     noise_removal_rate = (num_noise - num_noise_predicted) / num_noise
     return noise_removal_rate
 
+
 def calculate_signal_retention_std(original, denoised):
-    retention_list = []
-    for i in range(len(original)):
-        retention_list.append(calculate_signal_retention_rate(original[i].unsqueeze(0), denoised[i].unsqueeze(0)))
-    return torch.std(torch.tensor(retention_list)).item()
+    retention_list = [
+        calculate_signal_retention_rate(original[i].unsqueeze(0), denoised[i].unsqueeze(0))
+        for i in range(len(original))
+    ]
+
+    if len(retention_list) <= 1:
+        return 0.0
+
+    return torch.std(torch.tensor(retention_list), unbiased=False).item()
+
 
 def calculate_noise_removal_std(original, denoised, noisy):
-    removal_list = []
-    for i in range(len(original)):
-        removal_list.append(calculate_noise_removal_rate(original[i].unsqueeze(0), denoised[i].unsqueeze(0), noisy[i].unsqueeze(0)))
-    return torch.std(torch.tensor(removal_list)).item()
+    removal_list = [
+        calculate_noise_removal_rate(original[i].unsqueeze(0), denoised[i].unsqueeze(0), noisy[i].unsqueeze(0))
+        for i in range(len(original))
+    ]
+
+    if len(removal_list) <= 1:
+        return 0.0
+
+    return torch.std(torch.tensor(removal_list), unbiased=False).item()
 
 
 def calculate_mse_torch(original, denoised):
