@@ -1,4 +1,4 @@
-# blur included in the target data
+# blur not included in the target data
 X=88
 Y=128
 T_OFFSET=100

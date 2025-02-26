@@ -81,6 +81,9 @@ def plot3d(data_list, titles: List[str], cmap='viridis'):
         ax[i // 3, i % 3].set_title(format_title(titles[i]))
         ax[i // 3, i % 3].view_init(elev=30, azim=-45, roll=0)
         ax[i // 3, i % 3].set_box_aspect((1, 1, 1), zoom=0.8)
+        ax[i // 3, i % 3].set_xlim(0, data.shape[1])
+        ax[i // 3, i % 3].set_ylim(0, data.shape[0])
+        ax[i // 3, i % 3].set_zlim(zmin, zmax)
 
     for i in range(num, nrows * ncols):
         row, col = divmod(i, ncols)
