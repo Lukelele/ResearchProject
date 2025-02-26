@@ -8,10 +8,13 @@ def get_metrics(original, denoised, noisy=None):
     noisy_binary = (noisy > 0).float()
 
     signal_retention_rate = calculate_signal_retention_rate(original_binary, denoised_binary)
+    signal_retention_std = calculate_signal_retention_std(original_binary, denoised_binary)
     if noisy is None:
         noise_removal_rate = "Not Available"
+        noise_removal_std = "Not Available"
     else:
         noise_removal_rate = calculate_noise_removal_rate(original_binary, denoised_binary, noisy_binary)
+        noise_removal_std = calculate_noise_removal_std(original_binary, denoised_binary, noisy_binary)
     mse = calculate_mse_torch(original, denoised)
     psnr = calculate_psnr_torch(original, denoised)
     ssim = calculate_ssim_torch(original, denoised)
@@ -21,6 +24,8 @@ def get_metrics(original, denoised, noisy=None):
     dict_metrics = {
         "Signal Retention Rate": signal_retention_rate,
         "Noise Removal Rate": noise_removal_rate,
+        "Signal Retention Standard Deviation:": signal_retention_std,
+        "Noise Removal Standard Deviation:": noise_removal_std,
         "MSE": mse,
         "PSNR": psnr,
         "SSIM": ssim,
@@ -71,6 +76,18 @@ def calculate_noise_removal_rate(original, denoised, noisy):
 
     noise_removal_rate = (num_noise - num_noise_predicted) / num_noise
     return noise_removal_rate
+
+def calculate_signal_retention_std(original, denoised):
+    retention_list = []
+    for i in range(len(original)):
+        retention_list.append(calculate_signal_retention_rate(original[i].unsqueeze(0), denoised[i].unsqueeze(0)))
+    return torch.std(torch.tensor(retention_list)).item()
+
+def calculate_noise_removal_std(original, denoised):
+    removal_list = []
+    for i in range(len(original)):
+        removal_list.append(calculate_noise_removal_rate(original[i].unsqueeze(0), denoised[i].unsqueeze(0)))
+    return torch.std(torch.tensor(removal_list)).item()
 
 
 def calculate_mse_torch(original, denoised):
