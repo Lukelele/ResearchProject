@@ -14,7 +14,7 @@ class SSIMLoss(torch.nn.Module):
 
 
 class WeightedMSELoss(torch.nn.Module):
-    def __init__(self, alpha=0.5, beta=0.5):
+    def __init__(self, alpha=1, beta=1):
         """
         Weighted Mean Squared Error Loss that assigns different weights to different target values.
         

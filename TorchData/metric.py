@@ -19,18 +19,20 @@ def get_metrics(original, denoised, noisy=None):
     psnr = calculate_psnr_torch(original, denoised)
     ssim = calculate_ssim_torch(original, denoised)
     auc = roc_auc_score(original_binary.flatten().cpu().numpy(), denoised.flatten().cpu().numpy())
-    f1 = f1_score(original_binary.flatten().cpu().numpy(), denoised_binary.flatten().cpu().numpy())
+    f1 = calculate_f1(original_binary, denoised_binary)
+    f1_std = calculate_f1_std(original_binary, denoised_binary)
 
     dict_metrics = {
         "Signal Retention Rate": signal_retention_rate,
-        "Noise Removal Rate": noise_removal_rate,
         "Signal Retention Standard Deviation:": signal_retention_std,
+        "Noise Removal Rate": noise_removal_rate,
         "Noise Removal Standard Deviation:": noise_removal_std,
         "MSE": mse,
         "PSNR": psnr,
         "SSIM": ssim,
         "ROC AUC": float(auc),
-        "F1": f1
+        "F1": f1,
+        "F1 Standard Deviation:": f1_std
     }
     return dict_metrics
 
@@ -100,6 +102,16 @@ def calculate_noise_removal_std(original, denoised, noisy):
         return 0.0
 
     return torch.std(torch.tensor(removal_list), unbiased=False).item()
+
+def calculate_f1(original, denoised):
+    return f1_score(original.flatten().cpu(), denoised.flatten().cpu()).item()
+
+def calculate_f1_std(original, denoised):
+    print(original.shape)
+    f1_list = [calculate_f1(original[i], denoised[i]) for i in range(len(original))]
+    if len(f1_list) <= 1:
+        return 0.0
+    return torch.std(torch.tensor(f1_list), unbiased=False).item()
 
 
 def calculate_mse_torch(original, denoised):
