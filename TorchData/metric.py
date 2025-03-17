@@ -104,7 +104,7 @@ def calculate_noise_removal_std(original, denoised, noisy):
     return torch.std(torch.tensor(removal_list), unbiased=False).item()
 
 def calculate_f1(original, denoised):
-    return f1_score(original.flatten().cpu(), denoised.flatten().cpu()).item()
+    return f1_score(original.flatten().cpu(), denoised.flatten().cpu())
 
 def calculate_f1_std(original, denoised):
     print(original.shape)
