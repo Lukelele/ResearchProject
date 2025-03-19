@@ -124,7 +124,7 @@ if __name__ == "__main__":
                 return x + self.pos_embed[:, :seq]
 
         class HybridTransformer(torch.nn.Module):
-            def __init__(self, embed_dim=64, num_heads=8, num_layers=4):
+            def __init__(self, embed_dim=64, num_heads=4, num_layers=4):
                 super().__init__()
 
                 # CNN Encoder
@@ -188,9 +188,49 @@ if __name__ == "__main__":
                 # Decoder pathway
                 return self.decoder(x)
 
+        class ConvolutionAutoencoder(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+
+                self.encoder = torch.nn.Sequential(
+                    torch.nn.Conv2d(1, 64, 3, stride=1),  # Output: (16, 60, 45)
+                    torch.nn.BatchNorm2d(64),
+                    torch.nn.ReLU(),
+                    torch.nn.Conv2d(64, 16, 3, stride=1),  # Output: (32, 30, 23)
+                    torch.nn.BatchNorm2d(16),
+                    torch.nn.ReLU(),
+                    torch.nn.Conv2d(16, 8, 3, stride=1),  # Output: (64, 15, 12)
+                    torch.nn.BatchNorm2d(8),
+                    torch.nn.ReLU(),
+                    # torch.nn.Flatten(1),
+                    # torch.nn.Linear(64*114*84, 128),
+                    # torch.nn.ReLU(),
+                )
+
+                self.decoder = torch.nn.Sequential(
+                    # torch.nn.Linear(128, 64*114*84),
+                    # torch.nn.ReLU(),
+                    # torch.nn.Unflatten(1, (64, 114, 84)),
+                    torch.nn.ConvTranspose2d(8, 16, 3, stride=1),  # Output: (32, 30, 23)
+                    torch.nn.BatchNorm2d(16),
+                    torch.nn.ReLU(),
+                    torch.nn.ConvTranspose2d(16, 64, 3, stride=1),  # Output: (16, 60, 45)
+                    torch.nn.BatchNorm2d(64),
+                    torch.nn.ReLU(),
+                    torch.nn.ConvTranspose2d(64, 1, 3, stride=1),  # Output: (1, 120, 90)
+                )
+
+            def forward(self, x):
+                x = self.encoder(x)
+                x = self.decoder(x)
+                return x
+
+
         model = None
         if model_name == "HybridTransformer":
             model = HybridTransformer()
+        elif model_name == "ConvolutionAutoencoder":
+            model = ConvolutionAutoencoder()
         main(model)
     else:
         print("Usage: python {} <ENV_FILE_NAME> <MODEL_NAME>".format(sys.argv[0]))
